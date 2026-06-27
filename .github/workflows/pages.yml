@@ -24,7 +24,18 @@ jobs:
     - name: Install Blender
       run: |
         sudo apt-get update
-        sudo apt-get install -y blender
+        sudo apt-get install -y blender python3-numpy
+    
+    - name: Install numpy for Blender
+      run: |
+        # Find Blender's Python and install numpy
+        BLENDER_PYTHON=$(blender --background --python-expr "import sys; print(sys.executable)" 2>/dev/null | grep -oP '/[^\s]+python[^\s]*')
+        echo "Blender Python: $BLENDER_PYTHON"
+        # Install numpy using pip
+        pip3 install numpy --target="/usr/share/blender/scripts/modules" 2>/dev/null || true
+        # Alternative: symlink system numpy
+        PYTHON_VERSION=$(blender --background --python-expr "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null | grep -oP '\d+\.\d+$')
+        sudo ln -sf /usr/lib/python3/dist-packages/numpy /usr/share/blender/$PYTHON_VERSION/python/lib/python$PYTHON_VERSION/site-packages/ 2>/dev/null || true
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
