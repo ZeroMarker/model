@@ -252,6 +252,64 @@
 
 ---
 
+## 十一、Web 3D展示注意事项
+
+### 文件大小限制
+
+| 平台 | 单文件限制 | 说明 |
+|------|-----------|------|
+| GitHub Pages | ~100MB | 超大文件响应超时 |
+| Three.js (STL) | ~50MB | 加载缓慢，易超时 |
+| model-viewer (GLB) | ~20MB | 推荐最大尺寸 |
+| 移动端 | ~10MB | 建议控制在此范围 |
+
+### 格式选择（Web场景）
+
+| 格式 | 文件大小 | 加载速度 | 推荐度 |
+|------|---------|---------|--------|
+| GLB | 最小 | 最快 | ⭐⭐⭐⭐⭐ |
+| glTF | 小 | 快 | ⭐⭐⭐⭐ |
+| OBJ | 中 | 中 | ⭐⭐⭐ |
+| STL | 大 | 慢 | ⭐⭐ |
+| STEP | 很大 | 不支持 | ❌ |
+
+### 实际案例
+
+本项目中遇到的问题：
+
+| 模型 | STL大小 | GLB大小 | 结果 |
+|------|---------|---------|------|
+| 铁十字（基础版） | 19KB | - | ✅ Three.js可加载 |
+| 铁十字（精细化） | 29MB | ~500KB | ❌ STL失败 → ✅ GLB成功 |
+| 共和国勋章 | 118MB | ~2MB | ❌ STL失败 → ✅ GLB成功 |
+
+### 最佳实践
+
+1. **Web展示优先使用GLB格式**
+   - 压缩率高（通常比STL小10-50倍）
+   - 支持材质、动画
+   - model-viewer原生支持
+
+2. **STL转换为GLB**
+   ```python
+   # Blender Python
+   bpy.ops.import_mesh.stl(filepath="model.stl")
+   bpy.ops.export_scene.gltf(filepath="model.glb", export_format='GLB')
+   ```
+
+3. **减小文件体积的方法**
+   - 减少多边形数量
+   - 使用压缩格式（GLB自带压缩）
+   - 合并重复顶点
+   - 降低细节精度
+
+4. **Web 3D组件选择**
+   - **model-viewer**：最简单，支持GLB/glTF，自动处理加载
+   - **Three.js**：功能强大，支持多种格式，需要手动编码
+   - **Babylon.js**：完整3D引擎，适合复杂场景
+
+---
+
 ## 参考资料
 
 - [Khronos Group - glTF](https://www.khronos.org/gltf/)
@@ -259,3 +317,5 @@
 - [Autodesk FBX](https://www.autodesk.com/products/fbx)
 - [3MF Specification](https://3mf.io/specification/)
 - [buildingSMART - IFC](https://www.buildingsmart.org/standards/technical-standards/ifc/)
+- [model-viewer](https://modelviewer.dev/)
+- [Three.js](https://threejs.org/)
