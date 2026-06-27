@@ -65,9 +65,9 @@ jobs:
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete()
         
-        # Generate Maodie Cat
-        print("Generating Maodie Cat model...")
-        exec(open("maodie_cat.py").read())
+        # Generate Maodie Cat (Detail version)
+        print("Generating Maodie Cat model (detail)...")
+        exec(open("maodie_cat_detail.py").read())
         bpy.ops.export_scene.gltf(
             filepath="site/models/maodie_cat.glb",
             export_format='GLB',
@@ -186,11 +186,12 @@ jobs:
                     </model-viewer>
                     <div class="model-info">
                         <h2>圆头耄耋（橘猫）</h2>
-                        <p>网络热梗角色，特征为圆头、飞机耳、哈气状态，展现暴躁又憨厚的橘猫形象。</p>
+                        <p>网络热梗角色，精细化模型包含：圆头脸颊、飞机耳、哈气露齿、竖瞳、泪痕、虎斑纹路、毛发质感等细节。</p>
                         <div class="tags">
                             <span class="tag">角色</span>
                             <span class="tag">动物</span>
                             <span class="tag">网络热梗</span>
+                            <span class="tag">精细化</span>
                         </div>
                     </div>
                 </div>
