@@ -91,15 +91,46 @@ jobs:
       run: |
         export PATH="$HOME/miniforge/bin:$PATH"
         cd freecad
-        freecadcmd iron_cross_detail.py 2>&1 || echo "Iron cross generation completed"
-        freecadcmd medal_of_republic.py 2>&1 || echo "Medal generation completed"
+        freecadcmd iron_cross.py 2>&1 || echo "Iron cross generation completed"
+        freecadcmd medal_of_republic_simple.py 2>&1 || echo "Medal generation completed"
         cd ..
     
-    - name: Copy FreeCAD models
+    - name: Convert STL to GLB
       run: |
-        # Copy STL files for web display
-        cp freecad/iron_cross_detail.stl site/models/iron_cross.stl 2>/dev/null || cp freecad/iron_cross.stl site/models/iron_cross.stl 2>/dev/null || echo "No iron cross STL"
-        cp freecad/medal_of_republic.stl site/models/medal_of_republic.stl 2>/dev/null || echo "No medal STL"
+        cat > convert_stl_to_glb.py << 'EOF'
+        import bpy
+        import os
+        
+        # Convert Iron Cross
+        print("Converting Iron Cross...")
+        bpy.ops.import_mesh.stl(filepath="freecad/iron_cross.stl")
+        bpy.ops.export_scene.gltf(
+            filepath="site/models/iron_cross.glb",
+            export_format='GLB',
+            use_selection=False,
+            export_apply=True
+        )
+        
+        # Clear scene
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.delete()
+        
+        # Convert Medal of Republic
+        print("Converting Medal of Republic...")
+        if os.path.exists("freecad/medal_of_republic_simple.stl"):
+            bpy.ops.import_mesh.stl(filepath="freecad/medal_of_republic_simple.stl")
+        elif os.path.exists("freecad/medal_of_republic.stl"):
+            bpy.ops.import_mesh.stl(filepath="freecad/medal_of_republic.stl")
+        bpy.ops.export_scene.gltf(
+            filepath="site/models/medal_of_republic.glb",
+            export_format='GLB',
+            use_selection=False,
+            export_apply=True
+        )
+        
+        print("Conversion completed!")
+        EOF
+        blender --background --python convert_stl_to_glb.py
     
     - name: Create index.html
       run: |
@@ -111,8 +142,6 @@ jobs:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>3D模型展示</title>
             <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { 
@@ -229,7 +258,14 @@ jobs:
                     </div>
                 </div>
                 <div class="model-card">
-                    <canvas id="stl-viewer-iron" class="stl-viewer"></canvas>
+                    <model-viewer 
+                        class="model-viewer"
+                        src="models/iron_cross.glb" 
+                        alt="铁十字勋章"
+                        auto-rotate 
+                        camera-controls
+                        shadow-intensity="1">
+                    </model-viewer>
                     <div class="model-info">
                         <h2>铁十字勋章</h2>
                         <p>经典普鲁士/德国军事勋章复刻，FreeCAD参数化建模。十字形设计，凸起边框，中心圆环装饰。</p>
@@ -242,7 +278,14 @@ jobs:
                     </div>
                 </div>
                 <div class="model-card">
-                    <canvas id="stl-viewer-medal" class="stl-viewer"></canvas>
+                    <model-viewer 
+                        class="model-viewer"
+                        src="models/medal_of_republic.glb" 
+                        alt="共和国勋章"
+                        auto-rotate 
+                        camera-controls
+                        shadow-intensity="1">
+                    </model-viewer>
                     <div class="model-info">
                         <h2>共和国勋章</h2>
                         <p>中华人民共和国最高荣誉勋章复刻，五角星设计，中心天安门图案，麦穗装饰，挂环连接。</p>
@@ -258,100 +301,6 @@ jobs:
             <footer>
                 <p>使用 Blender & FreeCAD Python API 程序化生成 | Powered by GitHub Pages</p>
             </footer>
-            <script>
-                // STL Viewer using Three.js
-                function createSTLViewer(canvasId, modelPath, color) {
-                    const canvas = document.getElementById(canvasId);
-                    if (!canvas) return;
-                    
-                    const scene = new THREE.Scene();
-                    scene.background = new THREE.Color(0xf0f0f0);
-                    
-                    const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-                    camera.position.set(80, 60, 80);
-                    camera.lookAt(0, 0, 0);
-                    
-                    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-                    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-                    renderer.setPixelRatio(window.devicePixelRatio);
-                    
-                    // Lights
-                    const ambientLight = new THREE.AmbientLight(0x404040, 2);
-                    scene.add(ambientLight);
-                    
-                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-                    directionalLight.position.set(50, 50, 50);
-                    scene.add(directionalLight);
-                    
-                    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-                    backLight.position.set(-50, -50, -50);
-                    scene.add(backLight);
-                    
-                    // Load STL
-                    const loader = new THREE.STLLoader();
-                    loader.load(modelPath, function(geometry) {
-                        const material = new THREE.MeshPhongMaterial({ 
-                            color: color,
-                            specular: 0x111111,
-                            shininess: 80
-                        });
-                        const mesh = new THREE.Mesh(geometry, material);
-                        mesh.rotation.x = -Math.PI / 2;
-                        scene.add(mesh);
-                        animate();
-                    });
-                    
-                    // Mouse controls
-                    let isMouseDown = false;
-                    let prevMouseX = 0, prevMouseY = 0;
-                    let rotationX = 0, rotationY = 0;
-                    
-                    canvas.addEventListener('mousedown', (e) => {
-                        isMouseDown = true;
-                        prevMouseX = e.clientX;
-                        prevMouseY = e.clientY;
-                    });
-                    
-                    canvas.addEventListener('mousemove', (e) => {
-                        if (!isMouseDown) return;
-                        const deltaX = e.clientX - prevMouseX;
-                        const deltaY = e.clientY - prevMouseY;
-                        rotationY += deltaX * 0.01;
-                        rotationX += deltaY * 0.01;
-                        prevMouseX = e.clientX;
-                        prevMouseY = e.clientY;
-                    });
-                    
-                    canvas.addEventListener('mouseup', () => isMouseDown = false);
-                    canvas.addEventListener('mouseleave', () => isMouseDown = false);
-                    
-                    canvas.addEventListener('wheel', (e) => {
-                        e.preventDefault();
-                        camera.position.multiplyScalar(e.deltaY > 0 ? 1.1 : 0.9);
-                    });
-                    
-                    function animate() {
-                        requestAnimationFrame(animate);
-                        if (scene.children.length > 3) {
-                            const mesh = scene.children[3];
-                            mesh.rotation.y = rotationY;
-                            mesh.rotation.x = -Math.PI / 2 + rotationX;
-                        }
-                        renderer.render(scene, camera);
-                    }
-                    
-                    // Handle resize
-                    window.addEventListener('resize', () => {
-                        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-                        camera.updateProjectionMatrix();
-                        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-                    });
-                }
-                
-                // Create viewers
-                createSTLViewer('stl-viewer-iron', 'models/iron_cross.stl', 0x333333);
-                createSTLViewer('stl-viewer-medal', 'models/medal_of_republic.stl', 0xD4AF37);
-            </script>
         </body>
         </html>
         HTMLEOF
