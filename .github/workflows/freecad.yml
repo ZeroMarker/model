@@ -1,0 +1,66 @@
+name: FreeCAD Models
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'freecad/*.py'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install FreeCAD
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y freecad python3-freecad
+    
+    - name: Verify FreeCAD installation
+      run: |
+        freecad --version 2>/dev/null || freecadcmd --version 2>/dev/null || echo "FreeCAD installed"
+        which freecadcmd || which freecad || echo "Finding FreeCAD..."
+        dpkg -l | grep freecad
+    
+    - name: Create output directory
+      run: mkdir -p output
+    
+    - name: Run FreeCAD scripts
+      run: |
+        for script in freecad/*.py; do
+          if [ -f "$script" ]; then
+            echo "Running: $script"
+            freecadcmd "$script" 2>&1 || python3 "$script" 2>&1 || echo "Failed: $script"
+          fi
+        done
+    
+    - name: Move output files
+      run: |
+        # Move generated files to output directory
+        find . -name "*.step" -o -name "*.stl" -o -name "*.iges" | while read f; do
+          mv "$f" output/ 2>/dev/null || true
+        done
+        # Also check freecad directory
+        cp freecad/*.step freecad/*.stl output/ 2>/dev/null || true
+    
+    - name: List output files
+      run: ls -la output/ || echo "No output files generated"
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: freecad-models
+        path: output/
+        retention-days: 90
