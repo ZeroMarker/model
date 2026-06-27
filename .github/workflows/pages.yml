@@ -53,7 +53,7 @@ jobs:
         
         # Generate Tiananmen
         print("Generating Tiananmen model...")
-        exec(open("create_tiananmen.py").read())
+        exec(open("blender/create_tiananmen.py").read())
         bpy.ops.export_scene.gltf(
             filepath="site/models/tiananmen.glb",
             export_format='GLB',
@@ -67,7 +67,7 @@ jobs:
         
         # Generate Maodie Cat (Detail version)
         print("Generating Maodie Cat model (detail)...")
-        exec(open("maodie_cat_detail.py").read())
+        exec(open("blender/maodie_cat_detail.py").read())
         bpy.ops.export_scene.gltf(
             filepath="site/models/maodie_cat.glb",
             export_format='GLB',

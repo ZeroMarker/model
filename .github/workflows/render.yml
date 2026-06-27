@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '*.py'
+      - 'blender/*.py'
       - '*.blend'
   pull_request:
     branches: [ main ]
@@ -36,14 +36,14 @@ jobs:
     
     - name: Render Tiananmen model
       run: |
-        blender --background --python create_tiananmen.py -- \
+        blender --background --python blender/create_tiananmen.py -- \
           --render-output renders/tiananmen_ \
           --render-frame 1
       continue-on-error: true
     
     - name: Render Maodie Cat model
       run: |
-        blender --background --python maodie_cat.py -- \
+        blender --background --python blender/maodie_cat_detail.py -- \
           --render-output renders/maodie_cat_ \
           --render-frame 1
       continue-on-error: true

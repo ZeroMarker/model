@@ -47,9 +47,9 @@ jobs:
         # Determine model file
         model_name = "${{ matrix.model }}"
         if model_name == "tiananmen":
-            script = "create_tiananmen.py"
+            script = "blender/create_tiananmen.py"
         else:
-            script = "maodie_cat.py"
+            script = "blender/maodie_cat_detail.py"
         
         # Run model creation script
         exec(open(script).read())
@@ -75,9 +75,9 @@ jobs:
         
         model_name = "${{ matrix.model }}"
         if model_name == "tiananmen":
-            exec(open("create_tiananmen.py").read())
+            exec(open("blender/create_tiananmen.py").read())
         else:
-            exec(open("maodie_cat.py").read())
+            exec(open("blender/maodie_cat_detail.py").read())
         
         output_path = f"exports/{model_name}/{model_name}.fbx"
         bpy.ops.export_scene.fbx(
@@ -98,9 +98,9 @@ jobs:
         
         model_name = "${{ matrix.model }}"
         if model_name == "tiananmen":
-            exec(open("create_tiananmen.py").read())
+            exec(open("blender/create_tiananmen.py").read())
         else:
-            exec(open("maodie_cat.py").read())
+            exec(open("blender/maodie_cat_detail.py").read())
         
         output_path = f"exports/{model_name}/{model_name}.obj"
         bpy.ops.export_scene.obj(
@@ -120,9 +120,9 @@ jobs:
         
         model_name = "${{ matrix.model }}"
         if model_name == "tiananmen":
-            exec(open("create_tiananmen.py").read())
+            exec(open("blender/create_tiananmen.py").read())
         else:
-            exec(open("maodie_cat.py").read())
+            exec(open("blender/maodie_cat_detail.py").read())
         
         output_path = f"exports/{model_name}/{model_name}.stl"
         bpy.ops.export_mesh.stl(
