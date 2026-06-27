@@ -81,8 +81,9 @@ jobs:
     
     - name: Copy FreeCAD models
       run: |
-        # Copy STL files for web display (use detail version)
-        cp freecad/iron_cross_detail.stl site/models/iron_cross.stl 2>/dev/null || cp freecad/*.stl site/models/ 2>/dev/null || echo "No STL files found"
+        # Copy STL files for web display
+        cp freecad/iron_cross_detail.stl site/models/iron_cross.stl 2>/dev/null || echo "No iron cross STL"
+        cp freecad/medal_of_republic.stl site/models/medal_of_republic.stl 2>/dev/null || echo "No medal STL"
     
     - name: Create index.html
       run: |
@@ -212,7 +213,7 @@ jobs:
                     </div>
                 </div>
                 <div class="model-card">
-                    <canvas id="stl-viewer" class="stl-viewer"></canvas>
+                    <canvas id="stl-viewer-iron" class="stl-viewer"></canvas>
                     <div class="model-info">
                         <h2>铁十字勋章</h2>
                         <p>经典普鲁士/德国军事勋章复刻，FreeCAD参数化建模。十字形设计，凸起边框，中心圆环装饰。</p>
@@ -224,14 +225,27 @@ jobs:
                         </div>
                     </div>
                 </div>
+                <div class="model-card">
+                    <canvas id="stl-viewer-medal" class="stl-viewer"></canvas>
+                    <div class="model-info">
+                        <h2>共和国勋章</h2>
+                        <p>中华人民共和国最高荣誉勋章复刻，五角星设计，中心天安门图案，麦穗装饰，挂环连接。</p>
+                        <div class="tags">
+                            <span class="tag">CAD</span>
+                            <span class="tag">FreeCAD</span>
+                            <span class="tag">荣誉</span>
+                            <span class="tag">中国</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <footer>
                 <p>使用 Blender & FreeCAD Python API 程序化生成 | Powered by GitHub Pages</p>
             </footer>
             <script>
                 // STL Viewer using Three.js
-                (function() {
-                    const canvas = document.getElementById('stl-viewer');
+                function createSTLViewer(canvasId, modelPath, color) {
+                    const canvas = document.getElementById(canvasId);
                     if (!canvas) return;
                     
                     const scene = new THREE.Scene();
@@ -259,9 +273,9 @@ jobs:
                     
                     // Load STL
                     const loader = new THREE.STLLoader();
-                    loader.load('models/iron_cross.stl', function(geometry) {
+                    loader.load(modelPath, function(geometry) {
                         const material = new THREE.MeshPhongMaterial({ 
-                            color: 0x333333,
+                            color: color,
                             specular: 0x111111,
                             shininess: 80
                         });
@@ -316,7 +330,11 @@ jobs:
                         camera.updateProjectionMatrix();
                         renderer.setSize(canvas.clientWidth, canvas.clientHeight);
                     });
-                })();
+                }
+                
+                // Create viewers
+                createSTLViewer('stl-viewer-iron', 'models/iron_cross.stl', 0x333333);
+                createSTLViewer('stl-viewer-medal', 'models/medal_of_republic.stl', 0xD4AF37);
             </script>
         </body>
         </html>
