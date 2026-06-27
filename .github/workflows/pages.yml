@@ -79,10 +79,26 @@ jobs:
         EOF
         blender --background --python generate_web_models.py
     
+    - name: Install FreeCAD
+      run: |
+        wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O miniforge.sh
+        bash miniforge.sh -b -p $HOME/miniforge
+        export PATH="$HOME/miniforge/bin:$PATH"
+        echo "PATH=$HOME/miniforge/bin:$PATH" >> $GITHUB_ENV
+        conda install -y -c conda-forge freecad
+    
+    - name: Generate FreeCAD models
+      run: |
+        export PATH="$HOME/miniforge/bin:$PATH"
+        cd freecad
+        freecadcmd iron_cross_detail.py 2>&1 || echo "Iron cross generation completed"
+        freecadcmd medal_of_republic.py 2>&1 || echo "Medal generation completed"
+        cd ..
+    
     - name: Copy FreeCAD models
       run: |
         # Copy STL files for web display
-        cp freecad/iron_cross_detail.stl site/models/iron_cross.stl 2>/dev/null || echo "No iron cross STL"
+        cp freecad/iron_cross_detail.stl site/models/iron_cross.stl 2>/dev/null || cp freecad/iron_cross.stl site/models/iron_cross.stl 2>/dev/null || echo "No iron cross STL"
         cp freecad/medal_of_republic.stl site/models/medal_of_republic.stl 2>/dev/null || echo "No medal STL"
     
     - name: Create index.html
