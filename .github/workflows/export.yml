@@ -1,0 +1,145 @@
+name: Export Models
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      export_format:
+        description: 'Export format'
+        required: true
+        default: 'glb'
+        type: choice
+        options:
+          - glb
+          - fbx
+          - obj
+          - stl
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        model: [tiananmen, maodie_cat]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install Blender
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y blender
+    
+    - name: Create output directory
+      run: mkdir -p exports/${{ matrix.model }}
+    
+    - name: Export ${{ matrix.model }} to GLB
+      if: github.event.inputs.export_format == 'glb' || github.event_name == 'push'
+      run: |
+        cat > export_${{ matrix.model }}.py << 'EOF'
+        import bpy
+        import os
+        
+        # Determine model file
+        model_name = "${{ matrix.model }}"
+        if model_name == "tiananmen":
+            script = "create_tiananmen.py"
+        else:
+            script = "maodie_cat.py"
+        
+        # Run model creation script
+        exec(open(script).read())
+        
+        # Export to GLB
+        output_path = f"exports/{model_name}/{model_name}.glb"
+        bpy.ops.export_scene.gltf(
+            filepath=output_path,
+            export_format='GLB',
+            use_selection=False,
+            export_apply=True,
+            export_materials='EXPORT'
+        )
+        print(f"Exported to {output_path}")
+        EOF
+        blender --background --python export_${{ matrix.model }}.py
+    
+    - name: Export ${{ matrix.model }} to FBX
+      if: github.event.inputs.export_format == 'fbx'
+      run: |
+        cat > export_${{ matrix.model }}_fbx.py << 'EOF'
+        import bpy
+        
+        model_name = "${{ matrix.model }}"
+        if model_name == "tiananmen":
+            exec(open("create_tiananmen.py").read())
+        else:
+            exec(open("maodie_cat.py").read())
+        
+        output_path = f"exports/{model_name}/{model_name}.fbx"
+        bpy.ops.export_scene.fbx(
+            filepath=output_path,
+            use_selection=False,
+            apply_scale_options='FBX_SCALE_ALL',
+            mesh_smooth_type='FACE'
+        )
+        print(f"Exported to {output_path}")
+        EOF
+        blender --background --python export_${{ matrix.model }}_fbx.py
+    
+    - name: Export ${{ matrix.model }} to OBJ
+      if: github.event.inputs.export_format == 'obj'
+      run: |
+        cat > export_${{ matrix.model }}_obj.py << 'EOF'
+        import bpy
+        
+        model_name = "${{ matrix.model }}"
+        if model_name == "tiananmen":
+            exec(open("create_tiananmen.py").read())
+        else:
+            exec(open("maodie_cat.py").read())
+        
+        output_path = f"exports/{model_name}/{model_name}.obj"
+        bpy.ops.export_scene.obj(
+            filepath=output_path,
+            use_selection=False,
+            use_materials=True
+        )
+        print(f"Exported to {output_path}")
+        EOF
+        blender --background --python export_${{ matrix.model }}_obj.py
+    
+    - name: Export ${{ matrix.model }} to STL
+      if: github.event.inputs.export_format == 'stl'
+      run: |
+        cat > export_${{ matrix.model }}_stl.py << 'EOF'
+        import bpy
+        
+        model_name = "${{ matrix.model }}"
+        if model_name == "tiananmen":
+            exec(open("create_tiananmen.py").read())
+        else:
+            exec(open("maodie_cat.py").read())
+        
+        output_path = f"exports/{model_name}/{model_name}.stl"
+        bpy.ops.export_mesh.stl(
+            filepath=output_path,
+            use_selection=False,
+            use_materials=True
+        )
+        print(f"Exported to {output_path}")
+        EOF
+        blender --background --python export_${{ matrix.model }}_stl.py
+    
+    - name: List exported files
+      run: ls -la exports/${{ matrix.model }}/ || echo "No export files"
+    
+    - name: Upload exports
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.model }}-exports
+        path: exports/${{ matrix.model }}/
+        retention-days: 90

@@ -1,0 +1,215 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Install Blender
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y blender
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Create site directory
+      run: mkdir -p site/models site/renders
+    
+    - name: Generate model files for web
+      run: |
+        cat > generate_web_models.py << 'EOF'
+        import bpy
+        import os
+        
+        # Generate Tiananmen
+        print("Generating Tiananmen model...")
+        exec(open("create_tiananmen.py").read())
+        bpy.ops.export_scene.gltf(
+            filepath="site/models/tiananmen.glb",
+            export_format='GLB',
+            use_selection=False,
+            export_apply=True
+        )
+        
+        # Clear scene
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.delete()
+        
+        # Generate Maodie Cat
+        print("Generating Maodie Cat model...")
+        exec(open("maodie_cat.py").read())
+        bpy.ops.export_scene.gltf(
+            filepath="site/models/maodie_cat.glb",
+            export_format='GLB',
+            use_selection=False,
+            export_apply=True
+        )
+        
+        print("Web models generated!")
+        EOF
+        blender --background --python generate_web_models.py
+    
+    - name: Create index.html
+      run: |
+        cat > site/index.html << 'HTMLEOF'
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Blender 3D模型展示</title>
+            <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    padding: 2rem;
+                }
+                h1 { 
+                    text-align: center; 
+                    color: white; 
+                    margin-bottom: 2rem;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                }
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+                    gap: 2rem;
+                }
+                .model-card {
+                    background: white;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                }
+                .model-viewer {
+                    width: 100%;
+                    height: 400px;
+                    background: #f0f0f0;
+                }
+                .model-info {
+                    padding: 1.5rem;
+                }
+                .model-info h2 {
+                    color: #333;
+                    margin-bottom: 0.5rem;
+                }
+                .model-info p {
+                    color: #666;
+                    line-height: 1.6;
+                }
+                .tags {
+                    display: flex;
+                    gap: 0.5rem;
+                    margin-top: 1rem;
+                    flex-wrap: wrap;
+                }
+                .tag {
+                    background: #e0e7ff;
+                    color: #4338ca;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.85rem;
+                }
+                footer {
+                    text-align: center;
+                    color: white;
+                    margin-top: 3rem;
+                    opacity: 0.8;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Blender 3D模型展示</h1>
+            <div class="container">
+                <div class="model-card">
+                    <model-viewer 
+                        class="model-viewer"
+                        src="models/tiananmen.glb" 
+                        alt="天安门城楼"
+                        auto-rotate 
+                        camera-controls
+                        shadow-intensity="1">
+                    </model-viewer>
+                    <div class="model-info">
+                        <h2>天安门城楼</h2>
+                        <p>中国标志性建筑，采用重檐歇山顶设计，包含城墙、城楼、华表、金水桥等元素。</p>
+                        <div class="tags">
+                            <span class="tag">建筑</span>
+                            <span class="tag">中国风</span>
+                            <span class="tag">硬表面</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="model-card">
+                    <model-viewer 
+                        class="model-viewer"
+                        src="models/maodie_cat.glb" 
+                        alt="圆头耄耋橘猫"
+                        auto-rotate 
+                        camera-controls
+                        shadow-intensity="1">
+                    </model-viewer>
+                    <div class="model-info">
+                        <h2>圆头耄耋（橘猫）</h2>
+                        <p>网络热梗角色，特征为圆头、飞机耳、哈气状态，展现暴躁又憨厚的橘猫形象。</p>
+                        <div class="tags">
+                            <span class="tag">角色</span>
+                            <span class="tag">动物</span>
+                            <span class="tag">网络热梗</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <footer>
+                <p>使用 Blender Python API 程序化生成 | Powered by GitHub Pages</p>
+            </footer>
+        </body>
+        </html>
+        HTMLEOF
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    
+    - name: Build with Jekyll
+      uses: actions/jekyll-build-pages@v1
+      with:
+        source: ./site
+        destination: ./_site
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+  
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

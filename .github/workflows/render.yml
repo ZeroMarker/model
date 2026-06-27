@@ -1,0 +1,60 @@
+name: Render Blender Models
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.py'
+      - '*.blend'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install Blender
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y blender
+    
+    - name: Verify Blender installation
+      run: blender --version
+    
+    - name: Create output directory
+      run: mkdir -p renders
+    
+    - name: Render Tiananmen model
+      run: |
+        blender --background --python create_tiananmen.py -- \
+          --render-output renders/tiananmen_ \
+          --render-frame 1
+      continue-on-error: true
+    
+    - name: Render Maodie Cat model
+      run: |
+        blender --background --python maodie_cat.py -- \
+          --render-output renders/maodie_cat_ \
+          --render-frame 1
+      continue-on-error: true
+    
+    - name: List rendered files
+      run: ls -la renders/ || echo "No render files generated"
+    
+    - name: Upload render artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: rendered-models
+        path: renders/
+        retention-days: 30
