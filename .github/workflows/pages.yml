@@ -79,6 +79,11 @@ jobs:
         EOF
         blender --background --python generate_web_models.py
     
+    - name: Copy FreeCAD models
+      run: |
+        # Copy STL files for web display
+        cp freecad/*.stl site/models/ 2>/dev/null || echo "No STL files found"
+    
     - name: Create index.html
       run: |
         cat > site/index.html << 'HTMLEOF'
@@ -87,8 +92,10 @@ jobs:
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Blender 3D模型展示</title>
+            <title>3D模型展示</title>
             <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body { 
@@ -145,6 +152,15 @@ jobs:
                     border-radius: 20px;
                     font-size: 0.85rem;
                 }
+                .stl-viewer {
+                    width: 100%;
+                    height: 400px;
+                    background: #f0f0f0;
+                    cursor: grab;
+                }
+                .stl-viewer:active {
+                    cursor: grabbing;
+                }
                 footer {
                     text-align: center;
                     color: white;
@@ -154,7 +170,7 @@ jobs:
             </style>
         </head>
         <body>
-            <h1>Blender 3D模型展示</h1>
+            <h1>3D模型展示</h1>
             <div class="container">
                 <div class="model-card">
                     <model-viewer 
@@ -195,10 +211,113 @@ jobs:
                         </div>
                     </div>
                 </div>
+                <div class="model-card">
+                    <canvas id="stl-viewer" class="stl-viewer"></canvas>
+                    <div class="model-info">
+                        <h2>铁十字勋章</h2>
+                        <p>经典普鲁士/德国军事勋章复刻，FreeCAD参数化建模。十字形设计，凸起边框，中心圆环装饰。</p>
+                        <div class="tags">
+                            <span class="tag">CAD</span>
+                            <span class="tag">FreeCAD</span>
+                            <span class="tag">军事</span>
+                            <span class="tag">参数化</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <footer>
-                <p>使用 Blender Python API 程序化生成 | Powered by GitHub Pages</p>
+                <p>使用 Blender & FreeCAD Python API 程序化生成 | Powered by GitHub Pages</p>
             </footer>
+            <script>
+                // STL Viewer using Three.js
+                (function() {
+                    const canvas = document.getElementById('stl-viewer');
+                    if (!canvas) return;
+                    
+                    const scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0xf0f0f0);
+                    
+                    const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+                    camera.position.set(80, 60, 80);
+                    camera.lookAt(0, 0, 0);
+                    
+                    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+                    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    
+                    // Lights
+                    const ambientLight = new THREE.AmbientLight(0x404040, 2);
+                    scene.add(ambientLight);
+                    
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                    directionalLight.position.set(50, 50, 50);
+                    scene.add(directionalLight);
+                    
+                    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                    backLight.position.set(-50, -50, -50);
+                    scene.add(backLight);
+                    
+                    // Load STL
+                    const loader = new THREE.STLLoader();
+                    loader.load('models/iron_cross.stl', function(geometry) {
+                        const material = new THREE.MeshPhongMaterial({ 
+                            color: 0x333333,
+                            specular: 0x111111,
+                            shininess: 80
+                        });
+                        const mesh = new THREE.Mesh(geometry, material);
+                        mesh.rotation.x = -Math.PI / 2;
+                        scene.add(mesh);
+                        animate();
+                    });
+                    
+                    // Mouse controls
+                    let isMouseDown = false;
+                    let prevMouseX = 0, prevMouseY = 0;
+                    let rotationX = 0, rotationY = 0;
+                    
+                    canvas.addEventListener('mousedown', (e) => {
+                        isMouseDown = true;
+                        prevMouseX = e.clientX;
+                        prevMouseY = e.clientY;
+                    });
+                    
+                    canvas.addEventListener('mousemove', (e) => {
+                        if (!isMouseDown) return;
+                        const deltaX = e.clientX - prevMouseX;
+                        const deltaY = e.clientY - prevMouseY;
+                        rotationY += deltaX * 0.01;
+                        rotationX += deltaY * 0.01;
+                        prevMouseX = e.clientX;
+                        prevMouseY = e.clientY;
+                    });
+                    
+                    canvas.addEventListener('mouseup', () => isMouseDown = false);
+                    canvas.addEventListener('mouseleave', () => isMouseDown = false);
+                    
+                    canvas.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        camera.position.multiplyScalar(e.deltaY > 0 ? 1.1 : 0.9);
+                    });
+                    
+                    function animate() {
+                        requestAnimationFrame(animate);
+                        if (scene.children.length > 3) {
+                            const mesh = scene.children[3];
+                            mesh.rotation.y = rotationY;
+                            mesh.rotation.x = -Math.PI / 2 + rotationX;
+                        }
+                        renderer.render(scene, camera);
+                    }
+                    
+                    // Handle resize
+                    window.addEventListener('resize', () => {
+                        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+                    });
+                })();
+            </script>
         </body>
         </html>
         HTMLEOF
