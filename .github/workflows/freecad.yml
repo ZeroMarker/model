@@ -22,37 +22,43 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install FreeCAD
+    - name: Install FreeCAD via Conda
       run: |
-        sudo apt-get update
-        sudo apt-get install -y freecad python3-freecad
+        # Install conda
+        wget -q https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O miniforge.sh
+        bash miniforge.sh -b -p $HOME/miniforge
+        export PATH="$HOME/miniforge/bin:$PATH"
+        echo "PATH=$HOME/miniforge/bin:$PATH" >> $GITHUB_ENV
+        
+        # Install FreeCAD
+        conda install -y -c conda-forge freecad
     
     - name: Verify FreeCAD installation
       run: |
-        freecad --version 2>/dev/null || freecadcmd --version 2>/dev/null || echo "FreeCAD installed"
+        export PATH="$HOME/miniforge/bin:$PATH"
         which freecadcmd || which freecad || echo "Finding FreeCAD..."
-        dpkg -l | grep freecad
+        freecadcmd --version 2>&1 || echo "FreeCAD installed"
     
     - name: Create output directory
       run: mkdir -p output
     
     - name: Run FreeCAD scripts
       run: |
+        export PATH="$HOME/miniforge/bin:$PATH"
         for script in freecad/*.py; do
           if [ -f "$script" ]; then
             echo "Running: $script"
-            freecadcmd "$script" 2>&1 || python3 "$script" 2>&1 || echo "Failed: $script"
+            freecadcmd "$script" 2>&1 || echo "Failed: $script"
           fi
         done
     
     - name: Move output files
       run: |
         # Move generated files to output directory
-        find . -name "*.step" -o -name "*.stl" -o -name "*.iges" | while read f; do
+        find freecad -name "*.step" -o -name "*.stl" -o -name "*.iges" 2>/dev/null | while read f; do
           mv "$f" output/ 2>/dev/null || true
         done
-        # Also check freecad directory
-        cp freecad/*.step freecad/*.stl output/ 2>/dev/null || true
+        ls -la output/ 2>/dev/null || echo "No files moved"
     
     - name: List output files
       run: ls -la output/ || echo "No output files generated"
