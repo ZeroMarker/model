@@ -81,8 +81,8 @@ jobs:
     
     - name: Copy FreeCAD models
       run: |
-        # Copy STL files for web display
-        cp freecad/*.stl site/models/ 2>/dev/null || echo "No STL files found"
+        # Copy STL files for web display (use detail version)
+        cp freecad/iron_cross_detail.stl site/models/iron_cross.stl 2>/dev/null || cp freecad/*.stl site/models/ 2>/dev/null || echo "No STL files found"
     
     - name: Create index.html
       run: |
